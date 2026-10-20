@@ -159,6 +159,12 @@ label.field-label { font-size: 10px; font-weight: 800; color: #1a1a1a; text-tran
 .retry-btn:active { transform: scale(0.96); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { display:inline-block; animation: spin 0.8s linear infinite; }
+
+.repuestos-wrap { grid-column: 1 / -1; margin-top: 4px; border-top: 1px dashed rgba(183,28,28,0.25); padding-top: 10px; }
+.repuestos-title { font-size: 10px; font-weight: 800; color: #b71c1c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.repuesto-item { padding: 8px 10px; border-radius: 10px; background: rgba(183,28,28,0.04); border: 1px solid rgba(183,28,28,0.08); margin-bottom: 6px; }
+.repuesto-item .nombre { font-size: 12px; font-weight: 700; color: #1a1a1a; line-height: 1.35; }
+.repuesto-item .cod { font-size: 10px; font-weight: 700; color: #b71c1c; margin-top: 2px; letter-spacing: 0.3px; }
 </style>
 </head>
 <body>
@@ -563,6 +569,7 @@ function getCodigoQR() {
 function aplicarDatos(data) {
   EQUIPO_ACTUAL = data.equipo;
   PARTES_ACTUAL = data.partes || [];
+PARTES_GRUPOS = agruparPartes(PARTES_ACTUAL);
   REPORTES_ACTUAL = data.reportes || [];
   pintarDatosGenerales();
   pintarFichaTecnica();
@@ -720,27 +727,58 @@ function pintarFichaTecnica() {
   document.getElementById('fUltMantto').textContent = formatFecha(eq['ULTIMA INTERVENCION']);
 }
 
+/* Agrupa la lista plana que devuelve el servidor: cada componente (nivel 1)
+ * seguido de sus repuestos (nivel 2 o más). */
+let PARTES_GRUPOS = [];
+
+function agruparPartes(lista) {
+  const grupos = [];
+  (lista || []).forEach(p => {
+    const nivel = Number(p['Nivel']) || 1;
+    if (nivel <= 1 || !grupos.length) {
+      grupos.push({ padre: p, hijos: [] });
+    } else {
+      grupos[grupos.length - 1].hijos.push(p);
+    }
+  });
+  return grupos;
+}
+
 function pintarComponentes() {
   const cont = document.getElementById('componentesList');
   if (!cont) return;
-  if (!PARTES_ACTUAL.length) {
+  if (!PARTES_GRUPOS.length) {
     cont.innerHTML = '<p style="text-align:center; color:#999; font-size:12px; padding:20px;">Sin componentes registrados para este equipo.</p>';
     return;
   }
-  cont.innerHTML = PARTES_ACTUAL.map((p, i) => `
-    <div class="component-card${i===0 ? ' expanded' : ''}" style="margin-bottom:12px;">
-      <div class="component-head" onclick="toggleComponente(this)">
-        <div class="left"><div class="emoji">🔧</div><h3>${escapeHtml(p['NombreParte'] || 'Componente')}</h3></div>
-        <span style="color:${i===0 ? '#b71c1c' : '#999'}; font-weight:${i===0 ? '700' : '400'};">▼</span>
-      </div>
-      <div class="component-body" style="display:${i===0 ? 'grid' : 'none'};">
-        <div class="info-box"><label>Código Repuesto</label><value>${escapeHtml(p['CodigoRepuesto'] || '-')}</value></div>
-        <div class="info-box"><label>Marca</label><value>${escapeHtml(p['Marca'] || '-')}</value></div>
-        <div class="info-box"><label>Modelo</label><value>${escapeHtml(p['Modelo'] || '-')}</value></div>
-        <div class="info-box"><label>Estado</label><value>${escapeHtml(p['Estado'] || '-')}</value></div>
-      </div>
-    </div>
-  `).join('');
+  cont.innerHTML = PARTES_GRUPOS.map((g, i) => {
+    const p = g.padre;
+    const repuestosHtml = g.hijos.length ? `
+      <div class="repuestos-wrap">
+        <div class="repuestos-title">Repuestos (${g.hijos.length})</div>
+        ${g.hijos.map(h => {
+          const sangria = Math.max(0, (Number(h['Nivel']) || 2) - 2) * 14;
+          const nombre = h['NombreParteOriginal'] || h['NombreParte'] || '-';
+          const cod = h['CodigoRepuesto'] || h['CodigoParte'] || '';
+          return `<div class="repuesto-item" style="margin-left:${sangria}px;"><div class="nombre">${escapeHtml(nombre)}</div>${cod ? `<div class="cod">${escapeHtml(cod)}</div>` : ''}</div>`;
+        }).join('')}
+      </div>` : '';
+    return `
+<div class="component-card${i===0 ? ' expanded' : ''}" style="margin-bottom:12px;">
+<div class="component-head" onclick="toggleComponente(this)">
+<div class="left"><div class="emoji">🔧</div><h3>${escapeHtml(p['NombreParte'] || 'Componente')}</h3></div>
+<span style="color:${i===0 ? '#b71c1c' : '#999'}; font-weight:${i===0 ? '700' : '400'};">▼</span>
+</div>
+<div class="component-body" style="display:${i===0 ? 'grid' : 'none'};">
+<div class="info-box"><label>Código Repuesto</label><value>${escapeHtml(p['CodigoRepuesto'] || '-')}</value></div>
+<div class="info-box"><label>Marca</label><value>${escapeHtml(p['Marca'] || '-')}</value></div>
+<div class="info-box"><label>Modelo</label><value>${escapeHtml(p['Modelo'] || '-')}</value></div>
+<div class="info-box"><label>Estado</label><value>${escapeHtml(p['Estado'] || '-')}</value></div>
+${repuestosHtml}
+</div>
+</div>
+`;
+  }).join('');
 }
 
 function toggleComponente(headEl) {
@@ -776,8 +814,8 @@ function pintarHistorial() {
 
 function pintarSelectParteAfectada() {
   const sel = document.getElementById('selParteAfectada');
-  if (!sel || !PARTES_ACTUAL.length) return;
-  sel.innerHTML = PARTES_ACTUAL.map(p => `<option>${escapeHtml(p['NombreParte'])}</option>`).join('');
+  if (!sel || !PARTES_GRUPOS.length) return;
+  sel.innerHTML = PARTES_GRUPOS.map(g => `<option>${escapeHtml(g.padre['NombreParte'])}</option>`).join('');
 }
 
 let ENVIANDO_LOGIN = false; // candado extra: evita doble ingreso si se presiona varias veces
