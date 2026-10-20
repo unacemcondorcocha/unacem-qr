@@ -165,6 +165,32 @@ label.field-label { font-size: 10px; font-weight: 800; color: #1a1a1a; text-tran
 .repuesto-item { padding: 8px 10px; border-radius: 10px; background: rgba(183,28,28,0.04); border: 1px solid rgba(183,28,28,0.08); margin-bottom: 6px; }
 .repuesto-item .nombre { font-size: 12px; font-weight: 700; color: #1a1a1a; line-height: 1.35; }
 .repuesto-item .cod { font-size: 10px; font-weight: 700; color: #b71c1c; margin-top: 2px; letter-spacing: 0.3px; }
+
+.pc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid rgba(183,28,28,.08);margin-bottom:12px;transition:box-shadow .2s}
+.pc.open{box-shadow:0 8px 22px rgba(183,28,28,.14)}
+.pc-head{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pc-ico{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#b71c1c,#8b0000);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;position:relative}
+.pc-dot{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#2e7d32}
+.pc-dot.bad{background:#c62828}
+.pc-tit{flex:1;min-width:0}
+.pc-tit h3{font-size:13.5px;font-weight:800;color:#1a1a1a;line-height:1.3}
+.pc-tit .sub{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;align-items:center}
+.pc-cod{font-size:10px;font-weight:700;color:#888;letter-spacing:.3px}
+.pc-chip{font-size:10px;font-weight:800;color:#b71c1c;background:rgba(183,28,28,.08);padding:2px 8px;border-radius:20px}
+.pc-arrow{width:9px;height:9px;border-right:2.5px solid #999;border-bottom:2.5px solid #999;transform:rotate(45deg);transition:transform .2s;flex:none;margin:0 4px 4px 0}
+.pc.open .pc-arrow{transform:rotate(-135deg);border-color:#b71c1c;margin:4px 4px 0 0}
+.pc-body{display:none;padding:0 14px 14px;border-top:1px solid rgba(183,28,28,.08)}
+.pc.open .pc-body{display:block}
+.pc-meta{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.pc-meta span{font-size:11px;font-weight:700;color:#444;background:#f5f5f5;border-radius:8px;padding:5px 9px}
+.pc-meta b{color:#b71c1c;font-weight:800;margin-right:4px;font-size:9px;text-transform:uppercase;letter-spacing:.4px}
+.pc-search{width:100%;margin:8px 0 4px;padding:10px 12px;border-radius:10px;border:1.5px solid #eadada;font-size:16px;font-family:inherit}
+.pc-sec{font-size:10px;font-weight:800;color:#b71c1c;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 4px}
+.pc-rep{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #f0e6e6;cursor:pointer}
+.pc-rep:active{background:rgba(183,28,28,.06)}
+.pc-rep .n{font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.35}
+.pc-rep .c{font-size:10px;font-weight:800;color:#b71c1c;white-space:nowrap}
+.pc-rep.sub{border-left:2px solid rgba(183,28,28,.2);padding-left:8px}
 </style>
 </head>
 <body>
@@ -215,7 +241,7 @@ label.field-label { font-size: 10px; font-weight: 800; color: #1a1a1a; text-tran
 <div class="link-btn" id="datLinkFicha" onclick="showScreen('equipo')" style="display:none;">→ Ver ficha técnica completa</div>
 
 <p id="datReportarTxt" style="font-size: 11px; color: #999; text-align: center; margin: 4px 0; display:none;">¿Deseas reportar una falla?</p>
-<button id="datReportarBtn" class="btn btn-red btn-full" onclick="showScreen('verificacion')" style="display:none;">🔴 Sí, reportar falla</button>
+<button id="datReportarBtn" class="btn btn-red btn-full" onclick="iniciarReporte()" style="display:none;">🔴 Sí, reportar falla</button>
 </div>
 
 </div>
@@ -368,9 +394,11 @@ label.field-label { font-size: 10px; font-weight: 800; color: #1a1a1a; text-tran
 <div class="content" style="margin-bottom: 20px;">
 <div class="deco-tl"></div>
 
+<div id="repuestoSel" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(183,28,28,.07);border:1px solid rgba(183,28,28,.15);border-radius:12px;padding:10px 12px;"><div><div style="font-size:9px;font-weight:800;color:#b71c1c;text-transform:uppercase;letter-spacing:.4px;">Repuesto afectado</div><div class="t" style="font-size:12.5px;font-weight:700;color:#1a1a1a;"></div></div><span onclick="quitarRepuestoSel()" style="font-size:18px;color:#999;padding:4px 8px;cursor:pointer;">✕</span></div>
+
 <div>
 <label class="field-label">Parte Afectada</label>
-<select id="selParteAfectada">
+<select id="selParteAfectada" onchange="cambioParte()">
 <option>Motor Eléctrico</option>
 <option>Reductor</option>
 <option>Poleas y Correas</option>
@@ -744,6 +772,13 @@ function agruparPartes(lista) {
   return grupos;
 }
 
+function valorUtil(v) {
+  const s = String(v == null ? '' : v).trim();
+  return (!s || s === '-' || /^\d{4}-\d{2}-\d{2}T/.test(s)) ? '' : s;
+}
+
+let REPORTE_PREFILL = null;
+
 function pintarComponentes() {
   const cont = document.getElementById('componentesList');
   if (!cont) return;
@@ -753,42 +788,115 @@ function pintarComponentes() {
   }
   cont.innerHTML = PARTES_GRUPOS.map((g, i) => {
     const p = g.padre;
-    const repuestosHtml = g.hijos.length ? `
-      <div class="repuestos-wrap">
-        <div class="repuestos-title">Repuestos (${g.hijos.length})</div>
-        ${g.hijos.map(h => {
-          const sangria = Math.max(0, (Number(h['Nivel']) || 2) - 2) * 14;
-          const nombre = h['NombreParteOriginal'] || h['NombreParte'] || '-';
-          const cod = h['CodigoRepuesto'] || h['CodigoParte'] || '';
-          return `<div class="repuesto-item" style="margin-left:${sangria}px;"><div class="nombre">${escapeHtml(nombre)}</div>${cod ? `<div class="cod">${escapeHtml(cod)}</div>` : ''}</div>`;
-        }).join('')}
-      </div>` : '';
-    return `
-<div class="component-card${i===0 ? ' expanded' : ''}" style="margin-bottom:12px;">
-<div class="component-head" onclick="toggleComponente(this)">
-<div class="left"><div class="emoji">🔧</div><h3>${escapeHtml(p['NombreParte'] || 'Componente')}</h3></div>
-<span style="color:${i===0 ? '#b71c1c' : '#999'}; font-weight:${i===0 ? '700' : '400'};">▼</span>
-</div>
-<div class="component-body" style="display:${i===0 ? 'grid' : 'none'};">
-<div class="info-box"><label>Código Repuesto</label><value>${escapeHtml(p['CodigoRepuesto'] || '-')}</value></div>
-<div class="info-box"><label>Marca</label><value>${escapeHtml(p['Marca'] || '-')}</value></div>
-<div class="info-box"><label>Modelo</label><value>${escapeHtml(p['Modelo'] || '-')}</value></div>
-<div class="info-box"><label>Estado</label><value>${escapeHtml(p['Estado'] || '-')}</value></div>
-${repuestosHtml}
-</div>
-</div>
-`;
+    const n = g.hijos.length;
+    const estado = valorUtil(p['Estado']);
+    const malo = !!estado && !/operativ/i.test(estado);
+    const meta = ['Marca', 'Modelo', 'Capacidad', 'Voltaje', 'Frecuencia', 'Corriente']
+      .map(k => { const v = valorUtil(p[k]); return v ? '<span><b>' + k + '</b>' + escapeHtml(v) + '</span>' : ''; }).join('');
+    const metaHtml = (meta || malo) ? '<div class="pc-meta">' + meta + (malo ? '<span><b>Estado</b>' + escapeHtml(estado) + '</span>' : '') + '</div>' : '';
+    const buscador = n > 8 ? '<input class="pc-search" type="search" placeholder="Buscar repuesto..." oninput="filtrarRepuestos(this)">' : '';
+    const filas = g.hijos.map((h, j) => {
+      const sub = Math.max(0, (Number(h['Nivel']) || 2) - 2);
+      const nombre = h['NombreParteOriginal'] || h['NombreParte'] || '-';
+      const cod = valorUtil(h['CodigoRepuesto']) || valorUtil(h['CodigoParte']);
+      const q = (nombre + ' ' + cod).toLowerCase();
+      return '<div class="pc-rep' + (sub > 0 ? ' sub' : '') + '" style="margin-left:' + (sub * 14) + 'px" data-q="' + escapeHtml(q) + '" onclick="iniciarReporte(' + i + ',' + j + ')"><span class="n">' + escapeHtml(nombre) + '</span><span class="c">' + escapeHtml(cod) + '</span></div>';
+    }).join('');
+    const repHtml = n ? '<div class="pc-sec">Repuestos (' + n + ') · toca uno para reportarlo</div>' + buscador + '<div class="pc-lista">' + filas + '</div>' : '';
+    return '<div class="pc' + (i === 0 ? ' open' : '') + '">' +
+      '<div class="pc-head" onclick="toggleComponente(this)">' +
+        '<div class="pc-ico">🔧<span class="pc-dot' + (malo ? ' bad' : '') + '"></span></div>' +
+        '<div class="pc-tit"><h3>' + escapeHtml(p['NombreParte'] || 'Componente') + '</h3>' +
+          '<div class="sub"><span class="pc-cod">' + escapeHtml(valorUtil(p['CodigoParte'])) + '</span>' +
+          (n ? '<span class="pc-chip">' + n + ' repuesto' + (n > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
+        '<div class="pc-arrow"></div>' +
+      '</div>' +
+      '<div class="pc-body">' + metaHtml + repHtml +
+        '<button class="btn btn-red btn-full" style="padding:12px;margin-top:14px;" onclick="iniciarReporte(' + i + ')">🔴 Reportar falla en este componente</button>' +
+      '</div></div>';
   }).join('');
 }
 
+function filtrarRepuestos(inp) {
+  const q = inp.value.trim().toLowerCase();
+  inp.closest('.pc-body').querySelectorAll('.pc-rep').forEach(r => {
+    r.style.display = (!q || r.dataset.q.indexOf(q) >= 0) ? '' : 'none';
+  });
+}
+
 function toggleComponente(headEl) {
-  const card = headEl.closest('.component-card');
-  const body = card.querySelector('.component-body');
-  const arrow = headEl.querySelector('span');
-  const abierto = card.classList.toggle('expanded');
-  body.style.display = abierto ? 'grid' : 'none';
-  arrow.style.color = abierto ? '#b71c1c' : '#999';
-  arrow.style.fontWeight = abierto ? '700' : '400';
+  headEl.closest('.pc').classList.toggle('open');
+}
+
+function iniciarReporte(gi, ri) {
+  const g = (gi === undefined) ? null : PARTES_GRUPOS[gi];
+  if (!g) {
+    REPORTE_PREFILL = null;
+  } else {
+    const h = (ri === undefined) ? null : g.hijos[ri];
+    REPORTE_PREFILL = {
+      parte: g.padre['NombreParte'],
+      repuesto: h ? (h['NombreParteOriginal'] || h['NombreParte'] || '') : '',
+      codRepuesto: h ? (valorUtil(h['CodigoRepuesto']) || valorUtil(h['CodigoParte'])) : ''
+    };
+  }
+  if (PIN_ACTUAL && USUARIO_LOGIN) { irAReportar(); return; }
+  showScreen('verificacion');
+  setTimeout(() => {
+    const u = document.getElementById('usuario');
+    const f = document.getElementById(u && u.value ? 'pin' : 'usuario');
+    if (f) f.focus();
+  }, 150);
+}
+
+function irAReportar() {
+  const sel = document.getElementById('selParteAfectada');
+  const box = document.getElementById('repuestoSel');
+  if (sel && REPORTE_PREFILL) {
+    const o = Array.from(sel.options).find(x => x.value === REPORTE_PREFILL.parte);
+    if (o) sel.value = o.value;
+  } else if (sel && sel.options.length) {
+    sel.selectedIndex = 0;
+  }
+  if (box) {
+    if (REPORTE_PREFILL && REPORTE_PREFILL.repuesto) {
+      box.style.display = 'flex';
+      box.querySelector('.t').textContent = REPORTE_PREFILL.repuesto + (REPORTE_PREFILL.codRepuesto ? ' (' + REPORTE_PREFILL.codRepuesto + ')' : '');
+    } else {
+      box.style.display = 'none';
+    }
+  }
+  showScreen('reportar');
+}
+
+function quitarRepuestoSel() {
+  if (REPORTE_PREFILL) { REPORTE_PREFILL.repuesto = ''; REPORTE_PREFILL.codRepuesto = ''; }
+  const box = document.getElementById('repuestoSel');
+  if (box) box.style.display = 'none';
+}
+
+function cambioParte() {
+  const sel = document.getElementById('selParteAfectada');
+  if (REPORTE_PREFILL && sel && sel.value !== REPORTE_PREFILL.parte) quitarRepuestoSel();
+}
+
+function mostrarToast(msg) {
+  let t = document.getElementById('toastOk');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toastOk';
+    t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9999;max-width:90%;text-align:center;transition:opacity .3s;opacity:0;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
+function limpiarFormularioReporte() {
+  const d = document.getElementById('txtDescripcion'); if (d) d.value = '';
+  document.querySelectorAll('#criticidadGroup .crit-btn.selected, #gpGroup .gp-btn.selected').forEach(b => b.classList.remove('selected'));
 }
 
 function pintarHistorial() {
@@ -815,7 +923,7 @@ function pintarHistorial() {
 function pintarSelectParteAfectada() {
   const sel = document.getElementById('selParteAfectada');
   if (!sel || !PARTES_GRUPOS.length) return;
-  sel.innerHTML = PARTES_GRUPOS.map(g => `<option>${escapeHtml(g.padre['NombreParte'])}</option>`).join('');
+  sel.innerHTML = '<option>Equipo en general</option>' + PARTES_GRUPOS.map(g => `<option>${escapeHtml(g.padre['NombreParte'])}</option>`).join('');
 }
 
 let ENVIANDO_LOGIN = false; // candado extra: evita doble ingreso si se presiona varias veces
@@ -853,6 +961,7 @@ async function verificar() {
     USUARIO_ACTUAL = data.nombre || usuario;
     USUARIO_LOGIN = usuario;
     PIN_ACTUAL = pin;
+    try { localStorage.setItem('unq_user', usuario); } catch (e) {}
     if (data.debeCambiar) {
       PIN_TEMPORAL = pin;
       PIN_ACTUAL = '';
@@ -861,7 +970,7 @@ async function verificar() {
       showScreen('nuevoPin');
       return;
     }
-    showScreen('reportar');
+    irAReportar();
   } catch (err) {
     alert('No se pudo verificar. Revisa tu conexión e intenta de nuevo.');
   } finally {
@@ -906,7 +1015,7 @@ async function guardarNuevoPin() {
     PIN_TEMPORAL = '';
     document.getElementById('pin').value = '';
     alert('PIN creado. La próxima vez ingresa con tu nuevo PIN.');
-    showScreen('reportar');
+    irAReportar();
   } catch (err) {
     alert('No se pudo guardar. Revisa tu conexión e intenta de nuevo.');
   } finally {
@@ -956,7 +1065,7 @@ async function enviarReporte() {
         ubicacionTecnica: (EQUIPO_ACTUAL && EQUIPO_ACTUAL['UBICACION TECNICA']) || getCodigoQR(),
         equipo: (EQUIPO_ACTUAL && EQUIPO_ACTUAL['Nombre']) || '',
         tecnico: USUARIO_ACTUAL || document.getElementById('usuario').value.trim(),
-        tipoFalla: parte + ' - ' + tipoFalla,
+        tipoFalla: parte + ((REPORTE_PREFILL && REPORTE_PREFILL.repuesto && REPORTE_PREFILL.parte === parte) ? ' › ' + REPORTE_PREFILL.repuesto + (REPORTE_PREFILL.codRepuesto ? ' [' + REPORTE_PREFILL.codRepuesto + ']' : '') : '') + ' - ' + tipoFalla,
         prioridad: criticidadBtn.dataset.value,
         gp: gpBtn.dataset.value,
         descripcion: descripcion,
@@ -967,7 +1076,9 @@ async function enviarReporte() {
     }, () => { btn.innerHTML = '<span class="spin" style="display:inline-block;">⏳</span> Reintentando...'; }, CONFIG.FETCH_TIMEOUT_ENVIO_MS, 0);
     const data = await resp.json();
     if (data.ok) {
-      alert('Reporte enviado correctamente (ID ' + data.id + ')');
+      mostrarToast('✅ Reporte enviado (ID ' + data.id + ')');
+      REPORTE_PREFILL = null;
+      limpiarFormularioReporte();
       showScreen('datos');
       cargarEquipo();
     } else {
@@ -988,6 +1099,9 @@ async function enviarReporte() {
 
 document.addEventListener('DOMContentLoaded', () => {
   history.replaceState({ screen: 'datos' }, '', '#datos');
+  try { const u = localStorage.getItem('unq_user'); if (u) document.getElementById('usuario').value = u; } catch (e) {}
+  const pinEl = document.getElementById('pin');
+  if (pinEl) pinEl.addEventListener('input', () => { if (pinEl.value.length === 6) verificar(); });
   cargarEquipo();
 });
 
